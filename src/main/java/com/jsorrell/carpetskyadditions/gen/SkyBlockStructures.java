@@ -29,6 +29,7 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.entity.TrialSpawnerBlockEntity;
 import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerConfig;
 import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerData;
+import net.minecraft.world.level.block.entity.vault.VaultBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -231,6 +232,7 @@ public class SkyBlockStructures {
             }
 
             if (random.nextInt(30) == 1) {
+                BlockPos.MutableBlockPos omniousSpawner =
                 addBlock(
                     level,
                     Blocks.VAULT.defaultBlockState().setValue(VaultBlock.OMINOUS, true),
@@ -238,6 +240,36 @@ public class SkyBlockStructures {
                     random.nextInt(5) - random.nextInt(5),
                     random.nextInt(5) - random.nextInt(5),
                     bounds);
+                level.getServer().submit(() -> {
+                    BlockEntity omnSpTE = level.getBlockEntity(omniousSpawner);
+                    if (omnSpTE instanceof VaultBlockEntity vault) {
+                        CompoundTag blockData = vault.saveWithoutMetadata(level.registryAccess());
+
+                        CompoundTag config = new CompoundTag();
+                        config.putString("loot_table", "minecraft:chests/trial_chambers/reward_ominous");
+
+                        CompoundTag keyItem = new CompoundTag();
+                        keyItem.putString("id", "minecraft:ominous_trial_key");
+                        keyItem.putInt("count", 1);
+                        config.put("key_item", keyItem);
+
+                        blockData.put("config", config);
+
+                        // Preserve existing shared_data if needed
+                        if (!blockData.contains("shared_data")) {
+                            blockData.put("shared_data", new CompoundTag());
+                        }
+
+                        // Preserve or modify server_data, e.g., keeping state_updating_resumes_at
+                        CompoundTag serverData = blockData.getCompound("server_data");
+                        blockData.put("server_data", serverData);
+
+                        vault.loadWithComponents(blockData, level.registryAccess());
+                        vault.setChanged();
+                    }
+
+
+                });
             }
 
             if (random.nextInt(16) == 1) {
