@@ -1,5 +1,8 @@
 package com.jsorrell.carpetskyadditions.gen;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import com.mojang.serialization.Codec;
@@ -30,6 +33,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import org.jetbrains.annotations.NotNull;
 
 public class SkyBlockStructures {
     protected record StructureOrientation(Rotation rotation, Mirror mirror) {
@@ -211,6 +215,8 @@ public class SkyBlockStructures {
             EntityType.SILVERFISH
             // Add more entity types as needed
         };
+
+
         @Override
         public void generate(ServerLevelAccessor level, BoundingBox bounds, RandomSource random) {
 
@@ -246,16 +252,64 @@ public class SkyBlockStructures {
 
                 level.getServer().submit(() -> {
                     BlockEntity tileEntity = level.getBlockEntity(trialSpawnerPos);
-                    if (tileEntity instanceof TrialSpawnerBlockEntity) {
-                        TrialSpawnerBlockEntity spawner = (TrialSpawnerBlockEntity) tileEntity;
+                    if (tileEntity instanceof TrialSpawnerBlockEntity spawner) {
                         int index = random.nextInt(entityTypes.length);
-                        spawner.setEntityId(entityTypes[index], random);
-                        spawner.markUpdated();
+                        EntityType<?> selectedEntity = entityTypes[index];
+
+                        spawner.setEntityId(selectedEntity, random);
+                        CompoundTag blockData = spawner.saveWithoutMetadata(level.registryAccess());
+
+                        CompoundTag normalConfig = new CompoundTag();
+                        normalConfig.putInt("ticks_between_spawn", 20 + random.nextInt(11));
+
+                        ListTag spawnPotentials = new ListTag();
+                        CompoundTag spawnPotential = new CompoundTag();
+                        CompoundTag spawnData = new CompoundTag();
+                        CompoundTag entityData = new CompoundTag();
+                        entityData.putString("id", EntityType.getKey(selectedEntity).toString()); // Get entity ID dynamically
+                        spawnData.put("entity", entityData);
+                        spawnPotential.put("data", spawnData);
+                        spawnPotential.putInt("weight", 1);
+                        spawnPotentials.add(spawnPotential);
+                        float simMobs = (float) (1 + random.nextInt(4));
+                        normalConfig.put("spawn_potentials", spawnPotentials);
+                        normalConfig.putFloat("simultaneous_mobs", simMobs);
+                        normalConfig.putFloat("simultaneous_mobs_added_per_player", 1.0F);
+                        normalConfig.putFloat("total_mobs_added_per_player", 1.0F);
+                        normalConfig.putFloat("total_mobs", 6.0F);
+
+                        CompoundTag ominousConfig = getCompoundTag(simMobs);
+
+                        blockData.put("normal_config", normalConfig);
+                        blockData.put("ominous_config", ominousConfig);
+
+                        spawner.loadWithComponents(blockData, level.registryAccess());
                         spawner.setChanged();
+                        spawner.markUpdated();
                     }
                 });
 
             }
+        }
+
+        private static @NotNull CompoundTag getCompoundTag(float simMobs) {
+            CompoundTag ominousConfig = new CompoundTag();
+            ListTag lootTables = new ListTag();
+
+            CompoundTag loot1 = new CompoundTag();
+            loot1.putString("data", "minecraft:spawners/ominous/trial_chamber/key");
+            loot1.putInt("weight", 3);
+            lootTables.add(loot1);
+
+            CompoundTag loot2 = new CompoundTag();
+            loot2.putString("data", "minecraft:spawners/ominous/trial_chamber/consumables");
+            loot2.putInt("weight", 7);
+            lootTables.add(loot2);
+
+            ominousConfig.put("loot_tables_to_eject", lootTables);
+            ominousConfig.putFloat("simultaneous_mobs", simMobs);
+            ominousConfig.putFloat("total_mobs", 6.0F);
+            return ominousConfig;
         }
     }
 

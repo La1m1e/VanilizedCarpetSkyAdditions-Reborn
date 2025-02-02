@@ -1,6 +1,9 @@
 # Carpet Sky Additions Reborn
 
-This is a mod to holdover til the official Carpet Sky Additions is released
+This is a mod is a 1.21 quickfix for a -Reborn version of an original CarpetSkyAdditions, fixing trial chamber spawners. In case of problems with things other than trial chambers, feel free to ask the -Reborn version developer in his discord server or dm.
+
+[View the -Reborn mod here](https://github.com/TreeOfSelf/CarpetSkyAdditions-Reborn)
+
 [View the original mod here](https://github.com/jsorrell/CarpetSkyAdditions/issues)
 
 Carpet Sky Additions is a module for [fabric-carpet](https://github.com/gnembon/fabric-carpet)
